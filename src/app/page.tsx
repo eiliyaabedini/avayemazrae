@@ -1,65 +1,119 @@
-import Image from "next/image";
+"use client";
+
+import { AuthProvider, useAuth } from "@/lib/auth-context";
+import LoginForm from "@/components/LoginForm";
+import { useState, useEffect } from "react";
+import db from "@/lib/db";
+import RecordForm from "@/components/RecordForm";
+import RecordList from "@/components/RecordList";
+import ManagerReview from "@/components/ManagerReview";
+import SeedData from "@/components/SeedData";
+import type { SprayRecord } from "@/lib/types";
+
+function AppContent() {
+  const { user, logout, loading } = useAuth();
+  const [tab, setTab] = useState<"record" | "list" | "review">("record");
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (!user) return <LoginForm />;
+
+  const handleNewRecord = async (record: Omit<SprayRecord, "id" | "createdAt" | "updatedAt">) => {
+    await db.sprayRecords.add({
+      ...record,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as SprayRecord);
+    setTab("list");
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white shadow-sm sticky top-0 z-10">
+        <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
+          <h1 className="text-lg font-bold text-emerald-700">آوای مزرعه</h1>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-gray-500">
+              {user.role === "manager" ? "📋 مدیر" : "🚜 اپراتور"}
+            </span>
+            <button
+              onClick={logout}
+              className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+            >
+              خروج
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-lg mx-auto p-4 pb-24">
+        {tab === "record" && user.role === "operator" && (
+          <RecordForm
+            onSubmit={handleNewRecord}
+            farmId={user.farmId}
+            operatorId={user.id!}
+          />
+        )}
+        {tab === "record" && user.role === "manager" && (
+          <div className="text-center text-gray-400 py-10">
+            <p className="text-lg mb-2">📋 مدیر مزرعه</p>
+            <p className="text-sm">از تب‌های زیر برای بررسی استثناها استفاده کنید</p>
+          </div>
+        )}
+        {tab === "list" && <RecordList />}
+        {tab === "review" && user.role === "manager" && <ManagerReview />}
+        {tab === "review" && user.role === "operator" && (
+          <div className="text-center text-gray-400 py-10">
+            <p>فقط مدیر مزرعه به این بخش دسترسی دارد</p>
+          </div>
+        )}
+      </main>
+
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-10">
+        <div className="max-w-lg mx-auto flex">
+          <button
+            onClick={() => setTab("record")}
+            className={`flex-1 py-3 text-center text-sm font-medium transition-colors ${
+              tab === "record" ? "text-emerald-600 border-t-2 border-emerald-600" : "text-gray-400"
+            }`}
+          >
+            🎙 ثبت
+          </button>
+          <button
+            onClick={() => setTab("list")}
+            className={`flex-1 py-3 text-center text-sm font-medium transition-colors ${
+              tab === "list" ? "text-emerald-600 border-t-2 border-emerald-600" : "text-gray-400"
+            }`}
+          >
+            📋 رکوردها
+          </button>
+          {user.role === "manager" && (
+            <button
+              onClick={() => setTab("review")}
+              className={`flex-1 py-3 text-center text-sm font-medium transition-colors ${
+                tab === "review" ? "text-emerald-600 border-t-2 border-emerald-600" : "text-gray-400"
+              }`}
+            >
+              ✅ بررسی
+            </button>
+          )}
+        </div>
+      </nav>
+    </div>
+  );
+}
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <AuthProvider>
+      <SeedData />
+      <AppContent />
+    </AuthProvider>
   );
 }
