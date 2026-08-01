@@ -19,6 +19,8 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  const url = new URL(event.request.url);
+  if (url.pathname.startsWith("/_next") || url.pathname.includes("_turbopack")) return;
   event.respondWith(
     fetch(event.request)
       .then((response) => {
